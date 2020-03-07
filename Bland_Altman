@@ -1,0 +1,76 @@
+library(tidyverse)
+library(reshape2)
+library(BlandAltmanLeh)
+
+bland <- read.csv('bland.csv', sep = ' ')
+str(bland)
+dim(bland)
+
+bland_long1 <- melt(bland, id.vars = c('Subject'), measure.vars = c('J1','J2','J3'),
+                   variable.name = 'time', value.name = 'J')
+
+bland_long2 <- melt(bland, id.vars = c('Subject'), measure.vars = c('S1','S2','S3'),
+                    variable.name = 'time', value.name = 'S')
+
+bland_long <- merge(bland_long1, bland_long2, by = c('Subject'))
+str(bland_long)
+bland_long$time.y <- NULL
+
+##Correlation All values
+ggplot(data = bland_long, aes(x = J, y = S))+
+  geom_point()+
+  geom_smooth(method = 'lm')
+
+cor.test(bland_long$J, bland_long$S)
+
+##Correlation Initial Values
+ggplot(data = bland, aes(x = J1, y = S1))+
+  geom_point()+
+  geom_smooth(method = 'lm')
+
+cor.test(bland$J1, bland$S1)
+
+
+##Plot Bland Altman
+ggplot(data = bland_long, aes(x = (J + S)/2, y = (J - S)) )+
+  geom_point()+
+  geom_hline(aes(yintercept = 0))+
+  geom_hline(aes(yintercept = media), color = 'red')+
+  geom_hline(aes(yintercept = media -(1.96 * dp)), color = 'blue')+
+  geom_hline(aes(yintercept = media +(1.96 * dp)), color = 'blue')+
+  labs(x = 'Media PA J e S', y = 'Diferença J - S')
+
+##Plot Bland Altman por Percentagem
+ggplot(data = bland_long, aes(x = (J + S)/2, y = ((J - S) / (J + S)/2 )*100 ))+
+  geom_point()+
+  geom_hline(aes(yintercept = 0))+
+  geom_hline(aes(yintercept = media), color = 'red')+
+  geom_hline(aes(yintercept = media -(1.96 * dp)), color = 'blue')+
+  geom_hline(aes(yintercept = media +(1.96 * dp)), color = 'blue')+
+  labs(x = 'Media PA J e S', y = 'Diferença J - S %')
+
+
+##Diferenças
+bland_long$diff <- bland_long$J - bland_long$S
+media <- mean(bland_long$diff)
+dp <- sd(bland_long$diff)
+
+##BlandAltman
+bland.altman.plot(bland_long$J, bland_long$S, graph.sys = 'ggplot2')
+bland.altman.stats(bland_long$J, bland_long$S)
+
+##Diferença média
+mean(bland_long$diff)
+bland_long$Jplus <- bland_long$J + 15.6
+bland_long$diff2 <- bland_long$Jplus - bland_long$S
+mean(bland_long$diff2)
+
+bland.altman.plot(bland_long$Jplus, bland_long$S, graph.sys = 'ggplot2')
+
+
+##Example Data
+bland.altman.PEFR
+cor(bland.altman.PEFR$bigger.first, bland.altman.PEFR$bigger.second)
+bland.altman.plot(bland.altman.PEFR$bigger.first, bland.altman.PEFR$bigger.second,
+                  graph.sys = 'ggplot2')
+bland.altman.stats(bland.altman.PEFR$bigger.first, bland.altman.PEFR$bigger.second)
